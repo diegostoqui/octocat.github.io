@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Produção de Energia no Brasil — Dashboard Analítico</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --orange:        #F47920;
+    --orange-deep:   #D9600A;
+    --orange-light:  #FFA04D;
+    --orange-glow:   rgba(244,121,32,0.12);
+    --orange-border: rgba(244,121,32,0.25);
+    --bg:            #0D0D0D;
+    --bg2:           #141414;
+    --bg3:           #1A1A1A;
+    --bg4:           #222222;
+    --text:          #F0EDE8;
+    --text-muted:    #8A8278;
+    --text-dim:      #5A5550;
+    --green:         #4CAF7A;
+    --red:           #E05252;
+    --blue:          #5B9BD5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────── */
+  header {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(13,13,13,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--orange-border);
+    padding: 0 32px;
+    display: flex; align-items: center; gap: 20px;
+    height: 60px;
+  }
+  .logo-mark {
+    width: 32px; height: 32px;
+    background: var(--orange);
+    border-radius: 8px;
+    display: grid; place-items: center;
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 16px; color: #fff;
+    flex-shrink: 0;
+  }
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+  .header-title span { color: var(--orange); }
+  .header-badge {
+    margin-left: auto;
+    font-size: 11px; font-weight: 500;
+    color: var(--orange);
+    background: var(--orange-glow);
+    border: 1px solid var(--orange-border);
+    padding: 4px 10px; border-radius: 20px;
+    letter-spacing: 0.05em; text-transform: uppercase;
+  }
+
+  /* ── HERO ────────────────────────────────────────────── */
+  .hero {
+    padding: 56px 32px 40px;
+    position: relative; overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: -60px; right: -80px;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(244,121,32,0.15) 0%, transparent 70%);
+    pointer-events: none;
+  }
+  .hero-eyebrow {
+    font-size: 11px; font-weight: 500;
+    color: var(--orange); letter-spacing: 0.12em;
+    text-transform: uppercase; margin-bottom: 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .hero-eyebrow::before {
+    content: ''; display: block;
+    width: 20px; height: 2px; background: var(--orange);
+  }
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 4vw, 48px);
+    font-weight: 800; line-height: 1.1;
+    letter-spacing: -0.02em;
+    margin-bottom: 14px;
+  }
+  h1 .accent { color: var(--orange); }
+  .hero-sub {
+    color: var(--text-muted); font-size: 15px;
+    max-width: 580px; line-height: 1.6;
+    margin-bottom: 28px;
+  }
+  .hero-pills { display: flex; flex-wrap: wrap; gap: 8px; }
+  .pill {
+    font-size: 11px; font-weight: 500;
+    color: var(--text-muted); letter-spacing: 0.05em;
+    background: var(--bg3); border: 1px solid #2A2A2A;
+    padding: 5px 12px; border-radius: 20px;
+  }
+  .pill.active {
+    color: var(--orange); background: var(--orange-glow);
+    border-color: var(--orange-border);
+  }
+
+  /* ── LAYOUT ─────────────────────────────────────────── */
+  .page { padding: 0 32px 64px; max-width: 1400px; }
+
+  section { margin-bottom: 48px; }
+  .section-label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-dim); letter-spacing: 0.14em;
+    text-transform: uppercase; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-label::after {
+    content: ''; flex: 1; height: 1px; background: var(--bg4);
+  }
+
+  /* ── KPI CARDS ───────────────────────────────────────── */
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 16px;
+  }
+  .kpi {
+    background: var(--bg2);
+    border: 1px solid #202020;
+    border-radius: 12px;
+    padding: 22px 24px;
+    position: relative; overflow: hidden;
+    transition: border-color .2s, transform .2s;
+  }
+  .kpi:hover {
+    border-color: var(--orange-border);
+    transform: translateY(-2px);
+  }
+  .kpi::after {
+    content: ''; position: absolute;
+    bottom: 0; left: 0; right: 0; height: 2px;
+    background: linear-gradient(90deg, var(--orange), var(--orange-light));
+    opacity: 0; transition: opacity .2s;
+  }
+  .kpi:hover::after { opacity: 1; }
+  .kpi-icon {
+    font-size: 20px; margin-bottom: 12px;
+    display: block; line-height: 1;
+  }
+  .kpi-label {
+    font-size: 10px; font-weight: 600;
+    color: var(--text-dim); letter-spacing: 0.1em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .kpi-value {
+    font-family: 'Syne', sans-serif;
+    font-size: 26px; font-weight: 800;
+    color: var(--text); line-height: 1;
+    margin-bottom: 4px;
+  }
+  .kpi-value.orange { color: var(--orange); }
+  .kpi-sub {
+    font-size: 11px; color: var(--text-muted);
+  }
+  .kpi-trend {
+    font-size: 11px; font-weight: 600;
+    margin-top: 8px; display: inline-flex;
+    align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 20px;
+  }
+  .kpi-trend.up { color: var(--green); background: rgba(76,175,122,.12); }
+  .kpi-trend.neutral { color: var(--orange); background: var(--orange-glow); }
+
+  /* ── CHARTS ─────────────────────────────────────────── */
+  .charts-2 {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  }
+  .charts-3 {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px;
+  }
+  .chart-card {
+    background: var(--bg2); border: 1px solid #202020;
+    border-radius: 12px; padding: 24px;
+    transition: border-color .2s;
+  }
+  .chart-card:hover { border-color: var(--orange-border); }
+  .chart-card.wide { grid-column: span 2; }
+  .chart-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 14px; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .chart-desc {
+    font-size: 11px; color: var(--text-dim);
+    margin-bottom: 20px; line-height: 1.5;
+  }
+  .chart-wrap { position: relative; }
+
+  /* ── INSIGHT BOX ─────────────────────────────────────── */
+  .insight-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+  .insight {
+    background: var(--bg2); border: 1px solid #202020;
+    border-radius: 12px; padding: 22px;
+    border-left: 3px solid var(--orange);
+  }
+  .insight-q {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--orange); margin-bottom: 8px;
+  }
+  .insight-a {
+    font-size: 13px; color: var(--text-muted); line-height: 1.6;
+  }
+  .insight-a strong { color: var(--text); font-weight: 500; }
+
+  /* ── TABLE ───────────────────────────────────────────── */
+  .table-wrap {
+    background: var(--bg2); border: 1px solid #202020;
+    border-radius: 12px; overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  thead { background: var(--bg3); }
+  th {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--text-dim);
+    padding: 14px 20px; text-align: left;
+  }
+  td {
+    padding: 13px 20px; font-size: 13px; color: var(--text-muted);
+    border-top: 1px solid #1C1C1C;
+  }
+  tr:hover td { background: var(--bg3); color: var(--text); }
+  .td-rank {
+    font-family: 'Syne', sans-serif;
+    font-weight: 800; font-size: 15px; color: var(--text-dim);
+    width: 40px;
+  }
+  .td-rank.gold { color: var(--orange); }
+  .bar-cell { display: flex; align-items: center; gap: 10px; }
+  .mini-bar {
+    height: 4px; border-radius: 2px;
+    background: linear-gradient(90deg, var(--orange), var(--orange-light));
+    min-width: 2px;
+  }
+
+  /* ── CONCLUSAO ───────────────────────────────────────── */
+  .conclusion {
+    background: linear-gradient(135deg, rgba(244,121,32,0.08) 0%, var(--bg2) 60%);
+    border: 1px solid var(--orange-border);
+    border-radius: 16px; padding: 32px;
+    position: relative; overflow: hidden;
+  }
+  .conclusion::before {
+    content: '⚡';
+    position: absolute; right: 24px; top: 24px;
+    font-size: 48px; opacity: 0.06;
+  }
+  .conclusion h3 {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px; font-weight: 800;
+    color: var(--orange); margin-bottom: 12px;
+  }
+  .conclusion p {
+    color: var(--text-muted); line-height: 1.7;
+    font-size: 14px; max-width: 780px;
+  }
+  .conclusion p + p { margin-top: 10px; }
+  .conclusion strong { color: var(--text); font-weight: 500; }
+
+  /* ── FOOTER ─────────────────────────────────────────── */
+  footer {
+    border-top: 1px solid #1C1C1C;
+    padding: 20px 32px;
+    display: flex; align-items: center; gap: 12px;
+    font-size: 11px; color: var(--text-dim);
+  }
+  footer span { margin-left: auto; }
+
+  /* ── RESPONSIVE ─────────────────────────────────────── */
+  @media (max-width: 900px) {
+    .charts-2, .charts-3 { grid-template-columns: 1fr; }
+    .chart-card.wide { grid-column: span 1; }
+    .page, header, footer { padding-left: 20px; padding-right: 20px; }
+    .hero { padding: 40px 20px 28px; }
+  }
+
+  /* ── ANIMATIONS ─────────────────────────────────────── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .kpi { animation: fadeUp .4s ease both; }
+  .kpi:nth-child(1) { animation-delay: .05s; }
+  .kpi:nth-child(2) { animation-delay: .10s; }
+  .kpi:nth-child(3) { animation-delay: .15s; }
+  .kpi:nth-child(4) { animation-delay: .20s; }
+  .kpi:nth-child(5) { animation-delay: .25s; }
+  .kpi:nth-child(6) { animation-delay: .30s; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-mark">E</div>
+  <div class="header-title">Energia<span>BR</span></div>
+  <div class="header-badge">2015 – 2024</div>
+</header>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Análise de Dados · Projeto G2 · Tema 06</div>
+  <h1>Produção de <span class="accent">Energia</span><br>no Brasil</h1>
+  <p class="hero-sub">
+    Dashboard analítico da evolução da matriz energética brasileira entre 2015 e 2024,
+    cobrindo 6 fontes de geração, 5 regiões e 20 estados.
+  </p>
+  <div class="hero-pills">
+    <span class="pill active">Hidrelétrica</span>
+    <span class="pill active">Eólica</span>
+    <span class="pill active">Solar</span>
+    <span class="pill">Termelétrica</span>
+    <span class="pill active">Biomassa</span>
+    <span class="pill">Nuclear</span>
+  </div>
+</div>
+
+<!-- PAGE -->
+<div class="page">
+
+  <!-- KPIs -->
+  <section>
+    <div class="section-label">KPIs Nacionais</div>
+    <div class="kpi-grid">
+
+      <div class="kpi">
+        <span class="kpi-icon">⚡</span>
+        <div class="kpi-label">Produção Total</div>
+        <div class="kpi-value orange">571,8</div>
+        <div class="kpi-sub">TWh acumulados (2015–2024)</div>
+        <div class="kpi-trend up">↑ +45% vs. 2015</div>
+      </div>
+
+      <div class="kpi">
+        <span class="kpi-icon">🔋</span>
+        <div class="kpi-label">Consumo Total</div>
+        <div class="kpi-value">543,0</div>
+        <div class="kpi-sub">TWh acumulados (2015–2024)</div>
+        <div class="kpi-trend neutral">Superávit 5,1%</div>
+      </div>
+
+      <div class="kpi">
+        <span class="kpi-icon">💧</span>
+        <div class="kpi-label">Fonte Predominante</div>
+        <div class="kpi-value orange" style="font-size:18px">Hidrelétrica</div>
+        <div class="kpi-sub">37,1% da produção total</div>
+        <div class="kpi-trend neutral">212,0 TWh</div>
+      </div>
+
+      <div class="kpi">
+        <span class="kpi-icon">🌿</span>
+        <div class="kpi-label">Energia Renovável</div>
+        <div class="kpi-value orange">80,8%</div>
+        <div class="kpi-sub">Média do período</div>
+        <div class="kpi-trend up">↑ Matriz limpa</div>
+      </div>
+
+      <div class="kpi">
+        <span class="kpi-icon">🏆</span>
+        <div class="kpi-label">Maior Produtor</div>
+        <div class="kpi-value" style="font-size:22px">Espírito Santo</div>
+        <div class="kpi-sub">28,8 TWh acumulados</div>
+        <div class="kpi-trend neutral">Top 1 nacional</div>
+      </div>
+
+      <div class="kpi">
+        <span class="kpi-icon">🌫</span>
+        <div class="kpi-label">Emissão Total CO₂</div>
+        <div class="kpi-value">87,3</div>
+        <div class="kpi-sub">Mt CO₂eq estimadas</div>
+        <div class="kpi-trend neutral">78,7% termelétrica</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- LINHA TEMPORAL -->
+  <section>
+    <div class="section-label">Evolução Temporal</div>
+    <div class="chart-card">
+      <div class="chart-title">Produção × Consumo por Ano (MWh)</div>
+      <div class="chart-desc">Crescimento consistente da geração com superávit energético em todos os anos do período.</div>
+      <div class="chart-wrap"><canvas id="lineChart" height="90"></canvas></div>
+    </div>
+  </section>
+
+  <!-- FONTES + PIE -->
+  <section>
+    <div class="section-label">Matriz Energética</div>
+    <div class="charts-2">
+      <div class="chart-card">
+        <div class="chart-title">Produção por Fonte Energética</div>
+        <div class="chart-desc">Comparação acumulada 2015–2024 entre as seis fontes da matriz brasileira.</div>
+        <div class="chart-wrap"><canvas id="barFonte" height="160"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Participação na Matriz</div>
+        <div class="chart-desc">Distribuição percentual de cada fonte na geração total acumulada.</div>
+        <div class="chart-wrap" style="max-width:320px;margin:0 auto"><canvas id="pieMatriz" height="220"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REGIOES + SAZONALIDADE -->
+  <section>
+    <div class="section-label">Regional & Sazonalidade</div>
+    <div class="charts-2">
+      <div class="chart-card">
+        <div class="chart-title">Produção por Região</div>
+        <div class="chart-desc">Nordeste lidera, seguido por Sudeste e Centro-Oeste praticamente empatados.</div>
+        <div class="chart-wrap"><canvas id="barRegiao" height="160"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Sazonalidade Mensal (MWh médio)</div>
+        <div class="chart-desc">Dezembro apresenta o pico de geração; junho e outubro os menores volumes.</div>
+        <div class="chart-wrap"><canvas id="barSazon" height="160"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EMISSAO CO2 -->
+  <section>
+    <div class="section-label">Impacto Ambiental</div>
+    <div class="chart-card">
+      <div class="chart-title">Emissão de CO₂ por Fonte Energética</div>
+      <div class="chart-desc">A termelétrica concentra 78,7% das emissões. Fontes renováveis têm impacto marginal.</div>
+      <div class="chart-wrap"><canvas id="barCo2" height="80"></canvas></div>
+    </div>
+  </section>
+
+  <!-- TOP 10 ESTADOS -->
+  <section>
+    <div class="section-label">Ranking Estadual</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Estado</th>
+            <th>Produção Acumulada</th>
+            <th>Participação</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- PERGUNTAS ORIENTADORAS -->
+  <section>
+    <div class="section-label">Perguntas Orientadoras — Respostas Analíticas</div>
+    <div class="insight-grid">
+
+      <div class="insight">
+        <div class="insight-q">Fonte predominante</div>
+        <div class="insight-a">A <strong>Hidrelétrica</strong> domina com 37,1% da produção total (212 TWh), reflexo da abundância hídrica do território brasileiro.</div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-q">Região mais produtora</div>
+        <div class="insight-a">O <strong>Nordeste</strong> lidera com 143,4 TWh acumulados, impulsionado pela expansão eólica e solar no semiárido.</div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-q">Crescimento renovável</div>
+        <div class="insight-a">O percentual renovável permanece em torno de <strong>80,8%</strong> ao longo do período, indicando base sustentável já consolidada.</div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-q">Sazonalidade</div>
+        <div class="insight-a">Dezembro registra o pico (40.153 MWh médio), enquanto <strong>outubro e junho</strong> apresentam os menores volumes — padrão ligado ao regime de chuvas.</div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-q">Estado destaque</div>
+        <div class="insight-a"><strong>Espírito Santo</strong> lidera o ranking estadual (28,8 TWh), seguido de perto por São Paulo e Pernambuco — distribuição relativamente homogênea.</div>
+      </div>
+
+      <div class="insight">
+        <div class="insight-q">Evolução da matriz</div>
+        <div class="insight-a">A produção cresceu <strong>45% entre 2015 e 2024</strong> (46,7 → 67,7 TWh/ano), com superávit de geração vs. consumo em todos os anos.</div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- CONCLUSAO -->
+  <section>
+    <div class="conclusion">
+      <h3>Conclusão Executiva</h3>
+      <p>
+        O Brasil demonstrou crescimento energético robusto de <strong>45% entre 2015 e 2024</strong>,
+        partindo de 46,7 para 67,7 TWh anuais. A matriz nacional permanece altamente renovável —
+        cerca de <strong>80,8%</strong> —, com a <strong>Hidrelétrica</strong> como âncora (37,1%),
+        complementada pela crescente participação da Eólica (16,4%) e Solar (14,4%).
+      </p>
+      <p>
+        O principal desafio ambiental reside na <strong>Termelétrica</strong>, responsável por
+        78,7% das emissões de CO₂ mesmo representando apenas 18,5% da geração total.
+        A redução desta dependência é caminho estratégico para a descarbonização da matriz.
+        O <strong>Nordeste</strong> se consolida como polo de energias renováveis, enquanto o
+        balanço positivo entre produção e consumo em todo o período sinaliza segurança energética nacional.
+      </p>
+    </div>
+  </section>
+
+</div><!-- /page -->
+
+<footer>
+  <div class="logo-mark" style="width:22px;height:22px;font-size:11px;">E</div>
+  EnergiaBR · Análise de Dados 2015–2024 · Projeto G2 Tema 06
+  <span>Fonte: simulacao_producao_energia_brasil.csv</span>
+</footer>
+
+<script>
+// ── DATA ────────────────────────────────────────────────────
+const ANOS = [2015,2016,2017,2018,2019,2020,2021,2022,2023,2024];
+const PROD_ANO = [46681934,49338740,51301372,53704675,56216114,58542901,60454971,62338546,65529277,67717814];
+const CONS_ANO = [44364550,46850156,48832141,50641272,53436463,55906408,57300360,59211857,62012028,64454911];
+
+const FONTES = ['Hidrelétrica','Termelétrica','Eólica','Solar','Biomassa','Nuclear'];
+const PROD_FONTE = [212002300,105604300,93615900,82114540,58793780,19695550];
+
+const REGIOES = ['Nordeste','Sudeste','Centro-Oeste','Norte','Sul'];
+const PROD_REG = [143383400,114739900,114292900,114042200,85367880];
+
+const MESES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+const SAZON  = [39822.8,39724.7,39695.6,39794.8,39769.4,39424.9,39630.1,39669.1,39561.1,39406.2,39869.7,40153.5];
+
+const CO2_FONTE = [68642777,8480092,3744636,3284582,2351751,787822];
+const CO2_LABELS = ['Termelétrica','Hidrelétrica','Eólica','Solar','Biomassa','Nuclear'];
+
+const TOP10 = [
+  ['ES','Espírito Santo',28828020],
+  ['SP','São Paulo',28827202],
+  ['PE','Pernambuco',28808174],
+  ['PB','Paraíba',28708942],
+  ['MT','Mato Grosso',28699430],
+  ['TO','Tocantins',28697536],
+  ['MS','Mato Grosso do Sul',28672289],
+  ['BA','Bahia',28660424],
+  ['CE','Ceará',28630285],
+  ['RO','Rondônia',28581589],
+];
+
+// ── COLORS ──────────────────────────────────────────────────
+const ORANGE = '#F47920';
+const PALETTE = [
+  '#F47920','#FFA04D','#5B9BD5','#4CAF7A','#E05252','#B0A090',
+];
+const GRAY = 'rgba(255,255,255,0.06)';
+const MUT  = 'rgba(255,255,255,0.35)';
+
+Chart.defaults.color = '#5A5550';
+Chart.defaults.font.family = 'DM Sans, sans-serif';
+Chart.defaults.font.size = 12;
+
+function gridOpts(axis='y') {
+  return { color: '#1E1E1E', drawTicks: false };
+}
+function tickOpts() {
+  return { color: '#5A5550', padding: 8 };
+}
+
+// ── LINE CHART ───────────────────────────────────────────────
+new Chart(document.getElementById('lineChart'), {
+  type: 'line',
+  data: {
+    labels: ANOS,
+    datasets: [
+      {
+        label: 'Produção (MWh)',
+        data: PROD_ANO,
+        borderColor: ORANGE,
+        backgroundColor: 'rgba(244,121,32,0.07)',
+        fill: true, tension: 0.4, pointRadius: 4,
+        pointBackgroundColor: ORANGE, pointBorderColor: '#0D0D0D',
+        pointBorderWidth: 2,
+      },
+      {
+        label: 'Consumo (MWh)',
+        data: CONS_ANO,
+        borderColor: '#5B9BD5',
+        backgroundColor: 'rgba(91,155,213,0.05)',
+        fill: true, tension: 0.4, pointRadius: 4,
+        pointBackgroundColor: '#5B9BD5', pointBorderColor: '#0D0D0D',
+        pointBorderWidth: 2, borderDash: [4,4],
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { labels: { color: '#8A8278', boxWidth: 12, padding: 20 } },
+      tooltip: {
+        backgroundColor: '#1A1A1A', borderColor: '#2A2A2A', borderWidth: 1,
+        titleColor: '#F0EDE8', bodyColor: '#8A8278', padding: 12,
+        callbacks: {
+          label: ctx => ` ${ctx.dataset.label}: ${(ctx.raw/1e6).toFixed(1)} TWh`
+        }
+      }
+    },
+    scales: {
+      x: { grid: gridOpts('x'), ticks: tickOpts() },
+      y: {
+        grid: gridOpts(), ticks: {
+          ...tickOpts(),
+          callback: v => (v/1e6).toFixed(0)+' TWh'
+        }
+      }
+    }
+  }
+});
+
+// ── BAR FONTE ────────────────────────────────────────────────
+new Chart(document.getElementById('barFonte'), {
+  type: 'bar',
+  data: {
+    labels: FONTES,
+    datasets: [{
+      data: PROD_FONTE,
+      backgroundColor: PALETTE,
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:'#1A1A1A',borderColor:'#2A2A2A',borderWidth:1,
+        titleColor:'#F0EDE8',bodyColor:'#8A8278',padding:12,
+        callbacks: { label: ctx => ` ${(ctx.raw/1e6).toFixed(1)} TWh` }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: tickOpts() },
+      y: { grid: gridOpts(), ticks: { ...tickOpts(), callback: v => (v/1e6).toFixed(0)+' TWh' } }
+    }
+  }
+});
+
+// ── PIE MATRIZ ───────────────────────────────────────────────
+new Chart(document.getElementById('pieMatriz'), {
+  type: 'doughnut',
+  data: {
+    labels: FONTES,
+    datasets: [{
+      data: PROD_FONTE,
+      backgroundColor: PALETTE,
+      borderColor: '#141414', borderWidth: 3,
+      hoverOffset: 8,
+    }]
+  },
+  options: {
+    responsive: true, cutout: '62%',
+    plugins: {
+      legend: { position: 'bottom', labels: { color: '#8A8278', boxWidth: 10, padding: 12 } },
+      tooltip: {
+        backgroundColor:'#1A1A1A',borderColor:'#2A2A2A',borderWidth:1,
+        titleColor:'#F0EDE8',bodyColor:'#8A8278',padding:12,
+        callbacks: {
+          label: ctx => {
+            const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+            return ` ${(ctx.raw/total*100).toFixed(1)}%`;
+          }
+        }
+      }
+    }
+  }
+});
+
+// ── BAR REGIAO ───────────────────────────────────────────────
+new Chart(document.getElementById('barRegiao'), {
+  type: 'bar',
+  data: {
+    labels: REGIOES,
+    datasets: [{
+      data: PROD_REG,
+      backgroundColor: [ORANGE,'#FFA04D','#5B9BD5','#4CAF7A','#B0A090'],
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:'#1A1A1A',borderColor:'#2A2A2A',borderWidth:1,
+        titleColor:'#F0EDE8',bodyColor:'#8A8278',padding:12,
+        callbacks: { label: ctx => ` ${(ctx.raw/1e6).toFixed(1)} TWh` }
+      }
+    },
+    scales: {
+      x: { grid: gridOpts(), ticks: { ...tickOpts(), callback: v => (v/1e6).toFixed(0)+' T' } },
+      y: { grid: { display: false }, ticks: tickOpts() }
+    }
+  }
+});
+
+// ── BAR SAZON ────────────────────────────────────────────────
+new Chart(document.getElementById('barSazon'), {
+  type: 'bar',
+  data: {
+    labels: MESES,
+    datasets: [{
+      data: SAZON,
+      backgroundColor: SAZON.map((v,i) =>
+        v === Math.max(...SAZON) ? ORANGE :
+        v === Math.min(...SAZON) ? '#5B9BD5' : 'rgba(244,121,32,0.35)'
+      ),
+      borderRadius: 4, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:'#1A1A1A',borderColor:'#2A2A2A',borderWidth:1,
+        titleColor:'#F0EDE8',bodyColor:'#8A8278',padding:12,
+        callbacks: { label: ctx => ` ${ctx.raw.toLocaleString('pt-BR')} MWh (média)` }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: tickOpts() },
+      y: { grid: gridOpts(), ticks: tickOpts() }
+    }
+  }
+});
+
+// ── BAR CO2 ──────────────────────────────────────────────────
+new Chart(document.getElementById('barCo2'), {
+  type: 'bar',
+  data: {
+    labels: CO2_LABELS,
+    datasets: [{
+      data: CO2_FONTE,
+      backgroundColor: ['#E05252','rgba(244,121,32,0.5)','rgba(244,121,32,0.3)','rgba(244,121,32,0.3)','rgba(76,175,122,0.4)','rgba(91,155,213,0.4)'],
+      borderRadius: 6, borderSkipped: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor:'#1A1A1A',borderColor:'#2A2A2A',borderWidth:1,
+        titleColor:'#F0EDE8',bodyColor:'#8A8278',padding:12,
+        callbacks: { label: ctx => ` ${(ctx.raw/1e6).toFixed(2)} Mt CO₂eq` }
+      }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: tickOpts() },
+      y: { grid: gridOpts(), ticks: { ...tickOpts(), callback: v => (v/1e6).toFixed(0)+' Mt' } }
+    }
+  }
+});
+
+// ── TABLE ────────────────────────────────────────────────────
+const total = TOP10.reduce((s,r)=>s+r[2],0);
+const tbody = document.getElementById('tableBody');
+TOP10.forEach(([uf,nome,val],i) => {
+  const pct = (val/total*100).toFixed(1);
+  const barW = Math.round(val/TOP10[0][2]*100);
+  tbody.innerHTML += `
+  <tr>
+    <td class="td-rank ${i===0?'gold':''}">${i+1}</td>
+    <td><strong style="color:var(--text)">${nome}</strong> <span style="color:var(--text-dim);font-size:11px">${uf}</span></td>
+    <td>
+      <div class="bar-cell">
+        <div class="mini-bar" style="width:${barW}px"></div>
+        <span>${(val/1e6).toFixed(1)} TWh</span>
+      </div>
+    </td>
+    <td>${pct}%</td>
+  </tr>`;
+});
+</script>
+</body>
+</html>
